@@ -1,4 +1,4 @@
-orange_line={"Kavi Subhash":[('013',0.0,0.0)],
+orange_line={"Kavi Subhas":[('013',0.0,0.0)],
              "Satyajit Ray":[('045',1.89,3.3)],
              "Jyotirindra Nandy":[('046',1.393,3.5)],
              "Kavi Sukanta":[('047',1.096,2.0)],
