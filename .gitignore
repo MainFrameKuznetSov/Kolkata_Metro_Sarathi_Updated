@@ -1,1 +1,2 @@
 .env
+./backend/LineData/__pycache__
