@@ -146,6 +146,75 @@ def find_min_switch_path(graph, station_lines, src, dest):
 
     return rev_stations, switches, stations_count, lines_for_edges
 
+def pretty_print_segmented_path(path, lines_for_edges):
+    """
+    Nicely prints a path grouped by lines without duplicating interchange stations.
+
+    - path: list of station names (len = m)
+    - lines_for_edges: list of line names for each edge (len = m-1)
+        lines_for_edges[i] is the line used for edge path[i] -> path[i+1]
+    """
+    if not path:
+        print("No path to display.")
+        return
+
+    if len(path) == 1:
+        print(f"Already at destination: {path[0]}")
+        return
+
+    # Defensive: if lines_for_edges length doesn't match path length-1, fallback to simple print
+    if not lines_for_edges or len(lines_for_edges) != len(path) - 1:
+        print("Warning: lines_for_edges mismatch — printing simple path:")
+        print(" -> ".join(path))
+        return
+
+    def pretty_line_name(line):
+        # "BlueLine" -> "Blue Line", else keep as-is
+        return re.sub(r"([A-Za-z]+)([Ll]ine)$", r"\1 Line", line).strip().upper()
+
+    # Build segments: each segment = (line_name, [stations_in_segment])
+    segments = []
+    current_line = lines_for_edges[0]
+    current_segment = [path[0]]  # will collect consecutive stations on current_line
+
+    for i, edge_line in enumerate(lines_for_edges):
+        next_station = path[i + 1]
+        if edge_line == current_line:
+            # Continue on same line: include next_station in current segment
+            current_segment.append(next_station)
+        else:
+            # Line is changing at path[i] (interchange station)
+            # Finalize current segment (it includes the interchange station at its end)
+            segments.append((current_line, current_segment))
+            # Start a new segment for the new line. DO NOT duplicate interchange:
+            # new segment should begin from the station after interchange
+            current_line = edge_line
+            current_segment = [next_station]
+
+    # finalize last segment
+    if current_segment:
+        segments.append((current_line, current_segment))
+
+    # Printing
+    # Start header
+    start_line_name, start_stations = segments[0]
+    print(f"Start on {pretty_line_name(start_line_name)}")
+    print("  " + " -> ".join(start_stations))
+
+    # For each following segment, announce change at the interchange station and print the stations
+    for idx in range(1, len(segments)):
+        prev_line, prev_stations = segments[idx - 1]
+        curr_line, curr_stations = segments[idx]
+        # interchange station is last station of previous segment
+        interchange = prev_stations[-1]
+        print()
+        print(f"Change to {pretty_line_name(curr_line)} at {interchange}")
+        print("  " + " -> ".join([interchange] + curr_stations))
+
+    # Summary
+    print(f"\nEnd at {path[-1]}")
+
+
 # ---------- CLI ----------
 def main():
     graph, station_lines, canonical_to_display, id_to_names = build_graph_and_station_lines(LINE_ITEMS)
@@ -174,10 +243,10 @@ def main():
         print("No path found between the stations.")
         return
 
-    print("\nPath (stations):")
-    print(" -> ".join(path))
-    print(f"Stations traversed (including source): {stations_traversed}")
-    print(f"Number of switches: {switches}")
+    print(f"\nStations traversed (including source): {stations_traversed}")
+    print(f"Number of switches: {switches}\n")
+    pretty_print_segmented_path(path, lines_for_edges)
+
 
     # print("\nLegs (station_a -> station_b) with line used:")
     # for i in range(len(path) - 1):
